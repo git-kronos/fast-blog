@@ -39,7 +39,7 @@ def get_post(pk: int):
     return {"data": post}
 
 
-@app.delete('/post/{pk}', status_code=status.HTTP_204_NO_CONTENT)
+@app.delete('/posts/{pk}', status_code=status.HTTP_204_NO_CONTENT)
 def delete_post(pk: int):
     index = find_index_post(pk)
     my_post.pop(index)
@@ -47,3 +47,15 @@ def delete_post(pk: int):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"post with id:{pk} does not exist")
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@app.put('/posts/{pk}', status_code=status.HTTP_202_ACCEPTED)
+def update_post(pk: int, data: PostSchema):
+    index = find_index_post(pk)
+    if index is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"post with id:{pk} does not exist")
+    post_dict = data.dict()
+    post_dict['id'] = pk
+    my_post[index] = post_dict
+    return {"message": "Post Updated", "data": post_dict}
