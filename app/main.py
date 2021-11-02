@@ -2,8 +2,8 @@ from random import randrange
 
 from fastapi import FastAPI, status, HTTPException, Response
 
-from schemas import PostSchema
-from utils import (
+from .schemas import PostSchema
+from .utils import (
     find_post,
     my_post,
     find_index_post
