@@ -1,9 +1,13 @@
 from random import randrange
 
-from fastapi import FastAPI, status, HTTPException
+from fastapi import FastAPI, status, HTTPException, Response
 
 from schemas import PostSchema
-from utils import find_post, my_post, ResponseMessage
+from utils import (
+    find_post,
+    my_post,
+    find_index_post
+)
 
 app = FastAPI()
 
@@ -23,7 +27,7 @@ def create_posts(post: PostSchema):
     post_dict = post.dict()
     post_dict["id"] = randrange(0, 1000000000)
     my_post.append(post_dict)
-    return {"message": ResponseMessage.post, "data": post_dict}
+    return {"message": "Post created", "data": post_dict}
 
 
 @app.get('/posts/{pk}')
@@ -32,4 +36,14 @@ def get_post(pk: int):
     if not post:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"post with id:{pk} was not found")
-    return {"message": ResponseMessage.post, "data": post}
+    return {"data": post}
+
+
+@app.delete('/post/{pk}', status_code=status.HTTP_204_NO_CONTENT)
+def delete_post(pk: int):
+    index = find_index_post(pk)
+    my_post.pop(index)
+    if index is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"post with id:{pk} does not exist")
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
