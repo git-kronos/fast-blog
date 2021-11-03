@@ -3,22 +3,31 @@ from typing import List
 from fastapi import status, HTTPException, Response, Depends, APIRouter
 from sqlalchemy.orm import Session
 
-from app import models, schemas
+from app import models, schemas, oauth2
 from app.database import get_db
 
 router = APIRouter(
-    prefix="/posts"
+    prefix="/posts",
+    tags=['Posts']
 )
 
 
 @router.get("/", response_model=List[schemas.Post])
-def post_retrieve(db: Session = Depends(get_db)):
+def post_retrieve(
+        db: Session = Depends(get_db),
+        user_id: int = Depends(oauth2.get_current_user)
+):
     posts = db.query(models.Post).all()
     return posts
 
 
 @router.post('/', status_code=status.HTTP_201_CREATED, response_model=schemas.Post)
-def post_create(data: schemas.CreatePostSchema, db: Session = Depends(get_db)):
+def post_create(
+        data: schemas.CreatePostSchema,
+        db: Session = Depends(get_db),
+        user_id: int = Depends(oauth2.get_current_user)
+):
+    print(user_id)
     post = models.Post(**data.dict())
     db.add(post)
     db.commit()
@@ -27,7 +36,11 @@ def post_create(data: schemas.CreatePostSchema, db: Session = Depends(get_db)):
 
 
 @router.get('/{pk}', response_model=schemas.Post)
-def post_get_post(pk: int, db: Session = Depends(get_db)):
+def post_get_post(
+        pk: int,
+        db: Session = Depends(get_db),
+        user_id: int = Depends(oauth2.get_current_user)
+):
     post = db.query(models.Post).filter(models.Post.id == pk).first()
     if not post:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"post with id:{pk} was not found")
@@ -35,7 +48,11 @@ def post_get_post(pk: int, db: Session = Depends(get_db)):
 
 
 @router.delete('/{pk}', status_code=status.HTTP_204_NO_CONTENT)
-def post_destroy(pk: int, db: Session = Depends(get_db)):
+def post_destroy(
+        pk: int,
+        db: Session = Depends(get_db),
+        user_id: int = Depends(oauth2.get_current_user)
+):
     post = db.query(models.Post).filter(models.Post.id == pk)
     if post.first() is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"post with id:{pk} does not exist")
@@ -45,7 +62,12 @@ def post_destroy(pk: int, db: Session = Depends(get_db)):
 
 
 @router.put('/{pk}', status_code=status.HTTP_202_ACCEPTED, response_model=schemas.Post)
-def update(pk: int, data: schemas.CreatePostSchema, db: Session = Depends(get_db)):
+def update(
+        pk: int,
+        data: schemas.CreatePostSchema,
+        db: Session = Depends(get_db),
+        user_id: int = Depends(oauth2.get_current_user)
+):
     post = db.query(models.Post).filter(models.Post.id == pk)
     if post.first() is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"post with id:{pk} does not exist")
