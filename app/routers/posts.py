@@ -2,6 +2,7 @@ from typing import List
 
 from fastapi import status, HTTPException, Response, Depends, APIRouter
 from sqlalchemy.orm import Session
+from typing import Optional
 
 from app import models, schemas, oauth2
 from app.database import get_db
@@ -12,21 +13,28 @@ router = APIRouter(
 
 
 @router.get("/", response_model=List[schemas.Post])
-def post_retrieve(
+def retrieve(
         db: Session = Depends(get_db),
-        current_user: int = Depends(oauth2.get_current_user)
+        current_user: int = Depends(oauth2.get_current_user),
+        limit: int = 10,
+        skip: int = 0,
+        search: Optional[str] = ""
 ):
-    posts = db.query(models.Post).filter(models.Post.owner_id==current_user.id).all()
-    return posts
+    object_list = db.query(models.Post)\
+        .filter(
+        models.Post.owner_id == current_user.id,
+        models.Post.title.contains(search)
+    ).offset(skip)\
+        .limit(limit).all()
+    return object_list
 
 
 @router.post('/', status_code=status.HTTP_201_CREATED, response_model=schemas.Post)
-def post_create(
+def create(
         data: schemas.CreatePostSchema,
         db: Session = Depends(get_db),
         current_user: int = Depends(oauth2.get_current_user)
 ):
-    print(data.dict())
     post = models.Post(owner_id=current_user.id, **data.dict())
     db.add(post)
     db.commit()
@@ -35,7 +43,7 @@ def post_create(
 
 
 @router.get('/{pk}', response_model=schemas.Post)
-def post_get_post(
+def post(
         pk: int,
         db: Session = Depends(get_db),
         current_user: int = Depends(oauth2.get_current_user)
@@ -47,20 +55,20 @@ def post_get_post(
 
 
 @router.delete('/{pk}', status_code=status.HTTP_204_NO_CONTENT)
-def post_destroy(
+def destroy(
         pk: int,
         db: Session = Depends(get_db),
         current_user: int = Depends(oauth2.get_current_user)
 ):
-    queryset = db.query(models.Post).filter(models.Post.id == pk)
+    object_list = db.query(models.Post).filter(models.Post.id == pk)
 
-    if queryset.first() is None:
+    if object_list.first() is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"post with id:{pk} does not exist")
 
-    if queryset.first().owner_id != current_user.id:
+    if object_list.first().owner_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Unauthorised access")
 
-    queryset.delete(synchronize_session=False)
+    object_list.delete(synchronize_session=False)
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
@@ -72,13 +80,13 @@ def update(
         db: Session = Depends(get_db),
         current_user: int = Depends(oauth2.get_current_user)
 ):
-    queryset = db.query(models.Post).filter(models.Post.id == pk)
-    if queryset.first() is None:
+    object_list = db.query(models.Post).filter(models.Post.id == pk)
+    if object_list.first() is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"post with id:{pk} does not exist")
 
-    if queryset.first().owner_id != current_user.id:
+    if object_list.first().owner_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Unauthorised access")
 
-    queryset.update(data.dict(), synchronize_session=False)
+    object_list.update(data.dict(), synchronize_session=False)
     db.commit()
-    return queryset.first()
+    return object_list.first()
