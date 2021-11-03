@@ -35,8 +35,7 @@ def post_create(data: schemas.CreatePostSchema, db: Session = Depends(get_db)):
 def post_get_post(pk: int, db: Session = Depends(get_db)):
     post = db.query(models.Post).filter(models.Post.id == pk).first()
     if not post:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"post with id:{pk} was not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"post with id:{pk} was not found")
     return post
 
 
@@ -44,8 +43,7 @@ def post_get_post(pk: int, db: Session = Depends(get_db)):
 def post_destroy(pk: int, db: Session = Depends(get_db)):
     post = db.query(models.Post).filter(models.Post.id == pk)
     if post.first() is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"post with id:{pk} does not exist")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"post with id:{pk} does not exist")
     post.delete(synchronize_session=False)
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
@@ -55,8 +53,7 @@ def post_destroy(pk: int, db: Session = Depends(get_db)):
 def update(pk: int, data: schemas.CreatePostSchema, db: Session = Depends(get_db)):
     post = db.query(models.Post).filter(models.Post.id == pk)
     if post.first() is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"post with id:{pk} does not exist")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"post with id:{pk} does not exist")
     post.update(data.dict(), synchronize_session=False)
     db.commit()
     return post.first()
@@ -71,4 +68,13 @@ def create_user(data: schemas.UserCreate, db: Session = Depends(get_db)):
     db.add(user)
     db.commit()
     db.refresh(user)
+    return user
+
+
+@app.get('/users/{pk}', response_model=schemas.UserResponse)
+def retrieve_user(pk: int, db: Session = Depends(get_db)):
+    # hash password
+    user = db.query(models.User).filter(models.User.id == pk).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"user with id:{pk} was not found")
     return user
