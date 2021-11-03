@@ -8,8 +8,7 @@ from app.database import get_db
 
 router = APIRouter(
     prefix="/posts",
-    tags=['Posts']
-)
+    tags=['Posts'])
 
 
 @router.get("/", response_model=List[schemas.Post])
@@ -17,7 +16,7 @@ def post_retrieve(
         db: Session = Depends(get_db),
         current_user: int = Depends(oauth2.get_current_user)
 ):
-    posts = db.query(models.Post).all()
+    posts = db.query(models.Post).filter(models.Post.owner_id==current_user.id).all()
     return posts
 
 
@@ -27,7 +26,8 @@ def post_create(
         db: Session = Depends(get_db),
         current_user: int = Depends(oauth2.get_current_user)
 ):
-    post = models.Post(**data.dict())
+    print(data.dict())
+    post = models.Post(owner_id=current_user.id, **data.dict())
     db.add(post)
     db.commit()
     db.refresh(post)
@@ -52,10 +52,15 @@ def post_destroy(
         db: Session = Depends(get_db),
         current_user: int = Depends(oauth2.get_current_user)
 ):
-    post = db.query(models.Post).filter(models.Post.id == pk)
-    if post.first() is None:
+    queryset = db.query(models.Post).filter(models.Post.id == pk)
+
+    if queryset.first() is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"post with id:{pk} does not exist")
-    post.delete(synchronize_session=False)
+
+    if queryset.first().owner_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Unauthorised access")
+
+    queryset.delete(synchronize_session=False)
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
@@ -67,9 +72,13 @@ def update(
         db: Session = Depends(get_db),
         current_user: int = Depends(oauth2.get_current_user)
 ):
-    post = db.query(models.Post).filter(models.Post.id == pk)
-    if post.first() is None:
+    queryset = db.query(models.Post).filter(models.Post.id == pk)
+    if queryset.first() is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"post with id:{pk} does not exist")
-    post.update(data.dict(), synchronize_session=False)
+
+    if queryset.first().owner_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Unauthorised access")
+
+    queryset.update(data.dict(), synchronize_session=False)
     db.commit()
-    return post.first()
+    return queryset.first()
