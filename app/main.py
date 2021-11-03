@@ -1,13 +1,11 @@
-from random import randrange
+from fastapi import FastAPI, status, HTTPException, Response, Depends
+from sqlalchemy.orm import Session
 
-from fastapi import FastAPI, status, HTTPException, Response
+from app.database import engine, get_db
+from . import models
+from .schemas import CreatePostSchema
 
-from .schemas import PostSchema
-from .utils import (
-    find_post,
-    my_post,
-    find_index_post
-)
+models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
@@ -18,21 +16,23 @@ async def root():
 
 
 @app.get("/posts")
-def get_post():
-    return {"data": my_post}
+def post_retrieve(db: Session = Depends(get_db)):
+    posts = db.query(models.Post).all()
+    return {"data": posts}
 
 
 @app.post('/posts', status_code=status.HTTP_201_CREATED)
-def create_posts(post: PostSchema):
-    post_dict = post.dict()
-    post_dict["id"] = randrange(0, 1000000000)
-    my_post.append(post_dict)
-    return {"message": "Post created", "data": post_dict}
+def post_create(data: CreatePostSchema, db: Session = Depends(get_db)):
+    post = models.Post(**data.dict())
+    db.add(post)
+    db.commit()
+    db.refresh(post)
+    return {"message": "Post created", "data": post}
 
 
 @app.get('/posts/{pk}')
-def get_post(pk: int):
-    post = find_post(pk)
+def post_get_post(pk: int, db: Session = Depends(get_db)):
+    post = db.query(models.Post).filter(models.Post.id == pk).first()
     if not post:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"post with id:{pk} was not found")
@@ -40,22 +40,22 @@ def get_post(pk: int):
 
 
 @app.delete('/posts/{pk}', status_code=status.HTTP_204_NO_CONTENT)
-def delete_post(pk: int):
-    index = find_index_post(pk)
-    my_post.pop(index)
-    if index is None:
+def post_destroy(pk: int, db: Session = Depends(get_db)):
+    post = db.query(models.Post).filter(models.Post.id == pk)
+    if post.first() is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"post with id:{pk} does not exist")
+    post.delete(synchronize_session=False)
+    db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @app.put('/posts/{pk}', status_code=status.HTTP_202_ACCEPTED)
-def update_post(pk: int, data: PostSchema):
-    index = find_index_post(pk)
-    if index is None:
+def update(pk: int, data: CreatePostSchema, db: Session = Depends(get_db)):
+    post = db.query(models.Post).filter(models.Post.id == pk)
+    if post.first() is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"post with id:{pk} does not exist")
-    post_dict = data.dict()
-    post_dict['id'] = pk
-    my_post[index] = post_dict
-    return {"message": "Post Updated", "data": post_dict}
+    post.update(data.dict(), synchronize_session=False)
+    db.commit()
+    return {"message": "Post Updated", "data": post.first()}
