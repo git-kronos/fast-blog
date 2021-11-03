@@ -6,16 +6,18 @@ from sqlalchemy.orm import Session
 from app import models, schemas
 from app.database import get_db
 
-router = APIRouter()
+router = APIRouter(
+    prefix="/posts"
+)
 
 
-@router.get("/posts", response_model=List[schemas.Post])
+@router.get("/", response_model=List[schemas.Post])
 def post_retrieve(db: Session = Depends(get_db)):
     posts = db.query(models.Post).all()
     return posts
 
 
-@router.post('/posts', status_code=status.HTTP_201_CREATED, response_model=schemas.Post)
+@router.post('/', status_code=status.HTTP_201_CREATED, response_model=schemas.Post)
 def post_create(data: schemas.CreatePostSchema, db: Session = Depends(get_db)):
     post = models.Post(**data.dict())
     db.add(post)
@@ -24,7 +26,7 @@ def post_create(data: schemas.CreatePostSchema, db: Session = Depends(get_db)):
     return post
 
 
-@router.get('/posts/{pk}', response_model=schemas.Post)
+@router.get('/{pk}', response_model=schemas.Post)
 def post_get_post(pk: int, db: Session = Depends(get_db)):
     post = db.query(models.Post).filter(models.Post.id == pk).first()
     if not post:
@@ -32,7 +34,7 @@ def post_get_post(pk: int, db: Session = Depends(get_db)):
     return post
 
 
-@router.delete('/posts/{pk}', status_code=status.HTTP_204_NO_CONTENT)
+@router.delete('/{pk}', status_code=status.HTTP_204_NO_CONTENT)
 def post_destroy(pk: int, db: Session = Depends(get_db)):
     post = db.query(models.Post).filter(models.Post.id == pk)
     if post.first() is None:
@@ -42,7 +44,7 @@ def post_destroy(pk: int, db: Session = Depends(get_db)):
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-@router.put('/posts/{pk}', status_code=status.HTTP_202_ACCEPTED, response_model=schemas.Post)
+@router.put('/{pk}', status_code=status.HTTP_202_ACCEPTED, response_model=schemas.Post)
 def update(pk: int, data: schemas.CreatePostSchema, db: Session = Depends(get_db)):
     post = db.query(models.Post).filter(models.Post.id == pk)
     if post.first() is None:
