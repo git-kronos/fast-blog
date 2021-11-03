@@ -15,7 +15,7 @@ router = APIRouter(
 @router.get("/", response_model=List[schemas.Post])
 def post_retrieve(
         db: Session = Depends(get_db),
-        user_id: int = Depends(oauth2.get_current_user)
+        current_user: int = Depends(oauth2.get_current_user)
 ):
     posts = db.query(models.Post).all()
     return posts
@@ -25,9 +25,8 @@ def post_retrieve(
 def post_create(
         data: schemas.CreatePostSchema,
         db: Session = Depends(get_db),
-        user_id: int = Depends(oauth2.get_current_user)
+        current_user: int = Depends(oauth2.get_current_user)
 ):
-    print(user_id)
     post = models.Post(**data.dict())
     db.add(post)
     db.commit()
@@ -39,7 +38,7 @@ def post_create(
 def post_get_post(
         pk: int,
         db: Session = Depends(get_db),
-        user_id: int = Depends(oauth2.get_current_user)
+        current_user: int = Depends(oauth2.get_current_user)
 ):
     post = db.query(models.Post).filter(models.Post.id == pk).first()
     if not post:
@@ -51,7 +50,7 @@ def post_get_post(
 def post_destroy(
         pk: int,
         db: Session = Depends(get_db),
-        user_id: int = Depends(oauth2.get_current_user)
+        current_user: int = Depends(oauth2.get_current_user)
 ):
     post = db.query(models.Post).filter(models.Post.id == pk)
     if post.first() is None:
@@ -66,7 +65,7 @@ def update(
         pk: int,
         data: schemas.CreatePostSchema,
         db: Session = Depends(get_db),
-        user_id: int = Depends(oauth2.get_current_user)
+        current_user: int = Depends(oauth2.get_current_user)
 ):
     post = db.query(models.Post).filter(models.Post.id == pk)
     if post.first() is None:
