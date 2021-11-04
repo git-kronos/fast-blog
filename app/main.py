@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.routers import posts, users, base, auth, votes
 
@@ -8,6 +9,17 @@ from app.routers import posts, users, base, auth, votes
 # models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
+
+# fetch('http://127.0.0.1:8000/').then(res => res.json()).then(console.log)
+origins = ["*"]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.include_router(auth.router)
 app.include_router(base.router)
