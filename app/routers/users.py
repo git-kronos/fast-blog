@@ -11,7 +11,7 @@ router = APIRouter(
 
 
 @router.post('/', status_code=status.HTTP_201_CREATED, response_model=schemas.UserResponse)
-def create_user(data: schemas.UserCreate, db: Session = Depends(get_db)):
+def create(data: schemas.UserCreate, db: Session = Depends(get_db)):
     # hash password
     password = utils.hash(data.password)
     data.password = password
@@ -23,7 +23,7 @@ def create_user(data: schemas.UserCreate, db: Session = Depends(get_db)):
 
 
 @router.get('/{pk}', response_model=schemas.UserResponse)
-def retrieve_user(pk: int, db: Session = Depends(get_db)):
+def retrieve(pk: int, db: Session = Depends(get_db)):
     # hash password
     user = db.query(models.User).filter(models.User.id == pk).first()
     if not user:
