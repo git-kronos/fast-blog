@@ -35,3 +35,8 @@ alembic:
 migrate:
 	alembic upgrade head
 
+build:
+	docker build -t fastapi .
+
+bash:
+	docker exec -it api_1 bash

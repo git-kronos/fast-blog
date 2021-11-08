@@ -1,0 +1,34 @@
+version: "3"
+
+services:
+  api:
+    build: .
+    depends_on:
+      - docker-postgres-db
+    ports:
+#      - <port on local machine>:<port on container>
+      - 8000:8000
+    volumes:
+      - ./:/usr/src/app:ro
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+#    env_file:
+#      - ./.env
+    environment:
+      - DB_HOST=docker-postgres-db
+      - DB_NAME=fastapi
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - SECRET_KEY=09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7
+
+  docker-postgres-db:
+     image: postgres
+     environment:
+       - POSTGRES_PASSWORD=fastapi123
+       - POSTGRES_DB=fastapi
+
+     volumes:
+     - docker-db:/var/lib/postgresql/data
+
+volumes:
+  docker-db:
